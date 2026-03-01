@@ -42,31 +42,31 @@ export async function POST(request: NextRequest) {
         // Stage 1: Research
         currentStage = 1;
         sendEvent(controller, 1, stages[0].name, "running");
-        const research = await withTimeout(runResearcher(input), 20000, "리서처");
+        const research = await withTimeout(runResearcher(input), 25000, "리서처");
         sendEvent(controller, 1, stages[0].name, "done");
 
         // Stage 2: Organize
         currentStage = 2;
         sendEvent(controller, 2, stages[1].name, "running");
-        const organized = await withTimeout(runOrganizer(input, research), 12000, "정리자");
+        const organized = await withTimeout(runOrganizer(input, research), 10000, "정리자");
         sendEvent(controller, 2, stages[1].name, "done");
 
         // Stage 3: Plan
         currentStage = 3;
         sendEvent(controller, 3, stages[2].name, "running");
-        const plan = await withTimeout(runPlanner(input, organized), 12000, "기획자");
+        const plan = await withTimeout(runPlanner(input, organized), 10000, "기획자");
         sendEvent(controller, 3, stages[2].name, "done");
 
         // Stage 4: Write
         currentStage = 4;
         sendEvent(controller, 4, stages[3].name, "running");
-        const written = await withTimeout(runWriter(input, organized, plan), 18000, "작성자");
+        const written = await withTimeout(runWriter(input, organized, plan), 25000, "작성자");
         sendEvent(controller, 4, stages[3].name, "done");
 
         // Stage 5: Review
         currentStage = 5;
         sendEvent(controller, 5, stages[4].name, "running");
-        const final = await withTimeout(runReviewer(input, written), 18000, "검수자");
+        const final = await withTimeout(runReviewer(input, written), 20000, "검수자");
         sendEvent(controller, 5, stages[4].name, "done");
 
         // Final result

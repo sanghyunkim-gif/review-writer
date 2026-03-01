@@ -62,7 +62,7 @@ ${written.body}
       },
     ],
     temperature: 0.3,
-    max_tokens: 3500,
+    max_tokens: 2000,
   });
 
   const text = res.choices[0]?.message?.content || "{}";
