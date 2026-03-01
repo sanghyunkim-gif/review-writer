@@ -1,7 +1,39 @@
-export interface ReviewInput {
-  productName: string;
-  brandName: string;
+export type ReviewType = "product" | "restaurant" | "accommodation" | "service";
+
+export interface ProductFields {
   category: string;
+  price?: string;
+}
+
+export interface RestaurantFields {
+  category: string;
+  location: string;
+  menuHighlights?: string;
+  priceRange?: string;
+  visitTime?: string;
+}
+
+export interface AccommodationFields {
+  category: string;
+  location: string;
+  roomType?: string;
+  pricePerNight?: string;
+  facilities?: string;
+}
+
+export interface ServiceFields {
+  category: string;
+  serviceType?: string;
+  pricing?: string;
+}
+
+export type TypeFields = ProductFields | RestaurantFields | AccommodationFields | ServiceFields;
+
+export interface ReviewInput {
+  reviewType: ReviewType;
+  subjectName: string;
+  brandOrOwner: string;
+  typeFields: TypeFields;
   experience: string;
   pros: string;
   cons: string;
@@ -12,8 +44,8 @@ export interface ReviewInput {
 }
 
 export interface ResearchResult {
-  productInfo: string;
-  specs: string;
+  subjectInfo: string;
+  details: string;
   reviews: string;
   competitors: string;
   rawSearch: string;

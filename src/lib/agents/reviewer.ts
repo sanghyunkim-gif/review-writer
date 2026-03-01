@@ -53,9 +53,10 @@ ${written.body}
 해시태그: ${written.hashtags.join(", ")}
 
 ## 검수 기준
+- 유형: ${input.reviewType}
 - 필수 키워드: ${input.requiredKeywords}
 - 필수 문구: ${input.requiredPhrases}
-- 제품: ${input.productName} (${input.brandName})
+- 대상: ${input.subjectName} (${input.brandOrOwner})
 
 위 글을 검수하고, AI 말투를 제거하고, SEO를 최적화해서 최종 결과물을 만들어주세요.`,
       },

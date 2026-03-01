@@ -1,22 +1,63 @@
 "use client";
 
 import { useState } from "react";
-import type { ReviewResult, PipelineStage } from "@/lib/types";
+import type { ReviewType, ReviewResult, PipelineStage } from "@/lib/types";
 
-const CATEGORIES = ["식품", "화장품", "육아", "가전", "생활용품", "패션", "기타"];
+const REVIEW_TYPES: { value: ReviewType; label: string; icon: string; desc: string }[] = [
+  { value: "product", label: "제품", icon: "📦", desc: "화장품, 가전, 식품 등" },
+  { value: "restaurant", label: "맛집", icon: "🍽️", desc: "음식점, 카페, 베이커리 등" },
+  { value: "accommodation", label: "숙박", icon: "🏨", desc: "호텔, 리조트, 펜션 등" },
+  { value: "service", label: "서비스", icon: "💡", desc: "앱, 플랫폼, 구독 등" },
+];
+
+const CATEGORIES: Record<ReviewType, string[]> = {
+  product: ["식품", "화장품", "육아", "가전", "생활용품", "패션", "기타"],
+  restaurant: ["한식", "중식", "일식", "양식", "카페", "분식", "기타"],
+  accommodation: ["호텔", "리조트", "펜션", "모텔", "게스트하우스", "기타"],
+  service: ["앱/플랫폼", "구독서비스", "교육", "금융", "건강/운동", "기타"],
+};
+
 const TONES = [
-  { value: "friendly", label: "😊 친근한" },
-  { value: "professional", label: "📋 전문적인" },
-  { value: "humorous", label: "😄 유머러스" },
+  { value: "friendly", label: "친근한" },
+  { value: "professional", label: "전문적인" },
+  { value: "humorous", label: "유머러스" },
 ] as const;
 
 const STAGE_NAMES = ["🔍 리서처", "📋 정리자", "🎯 기획자", "✍️ 작성자", "✨ 검수자"];
 
+const SUBJECT_LABELS: Record<ReviewType, string> = {
+  product: "제품명",
+  restaurant: "매장명",
+  accommodation: "숙소명",
+  service: "서비스명",
+};
+
+const BRAND_LABELS: Record<ReviewType, string> = {
+  product: "브랜드명",
+  restaurant: "프랜차이즈/운영사",
+  accommodation: "운영사/체인",
+  service: "운영사/개발사",
+};
+
+const SUBJECT_PLACEHOLDERS: Record<ReviewType, string> = {
+  product: "예: 비타민C 세럼",
+  restaurant: "예: 을지로골목식당",
+  accommodation: "예: 해비치 리조트",
+  service: "예: 토스",
+};
+
+const BRAND_PLACEHOLDERS: Record<ReviewType, string> = {
+  product: "예: 닥터자르트",
+  restaurant: "예: 직영 / 프랜차이즈명",
+  accommodation: "예: 해비치호텔앤드리조트",
+  service: "예: 비바리퍼블리카",
+};
+
 export default function Home() {
+  const [reviewType, setReviewType] = useState<ReviewType>("product");
   const [form, setForm] = useState({
-    productName: "",
-    brandName: "",
-    category: "식품",
+    subjectName: "",
+    brandOrOwner: "",
     experience: "",
     pros: "",
     cons: "",
@@ -25,6 +66,7 @@ export default function Home() {
     tone: "friendly" as "friendly" | "professional" | "humorous",
     photoCount: 5,
   });
+  const [typeFields, setTypeFields] = useState<Record<string, string>>({ category: "식품" });
 
   const [stages, setStages] = useState<PipelineStage[]>([]);
   const [result, setResult] = useState<ReviewResult | null>(null);
@@ -34,6 +76,14 @@ export default function Home() {
   const updateField = (field: string, value: string | number) =>
     setForm((p) => ({ ...p, [field]: value }));
 
+  const updateTypeField = (field: string, value: string) =>
+    setTypeFields((p) => ({ ...p, [field]: value }));
+
+  function handleTypeChange(type: ReviewType) {
+    setReviewType(type);
+    setTypeFields({ category: CATEGORIES[type][0] });
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
@@ -41,11 +91,17 @@ export default function Home() {
     setCopied(false);
     setStages(STAGE_NAMES.map((name, i) => ({ stage: i + 1, name, status: "pending" })));
 
+    const payload = {
+      reviewType,
+      ...form,
+      typeFields,
+    };
+
     try {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const reader = res.body?.getReader();
@@ -73,8 +129,13 @@ export default function Home() {
               setStages((prev) => prev.map((s) => ({ ...s, status: "done" })));
             } else if (data.status === "error") {
               setStages((prev) =>
-                prev.map((s) => (s.status === "running" ? { ...s, status: "error" } : s))
+                prev.map((s) => {
+                  if (s.stage === data.stage) return { ...s, status: "error" };
+                  if (s.status === "running") return { ...s, status: "error" };
+                  return s;
+                })
               );
+              setLoading(false);
             } else {
               setStages((prev) =>
                 prev.map((s) =>
@@ -100,46 +161,75 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  const inputClass = "w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm";
+
   return (
     <main className="max-w-2xl mx-auto p-4 sm:p-6">
-      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2">✍️ 체험단 리뷰 작성기</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-2">체험단 리뷰 작성기</h1>
       <p className="text-center text-gray-500 dark:text-gray-400 mb-6 text-sm">
         5단계 AI 파이프라인이 자연스러운 체험 리뷰를 작성합니다
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {/* 유형 선택 */}
+        <div>
+          <label className="block text-sm font-medium mb-2">리뷰 유형</label>
+          <div className="grid grid-cols-4 gap-2">
+            {REVIEW_TYPES.map((t) => (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => handleTypeChange(t.value)}
+                className={`p-3 rounded-lg border text-center transition ${
+                  reviewType === t.value
+                    ? "bg-blue-600 text-white border-blue-600"
+                    : "dark:border-gray-700 dark:bg-gray-900 hover:border-blue-400"
+                }`}
+              >
+                <div className="text-xl">{t.icon}</div>
+                <div className="text-sm font-medium mt-1">{t.label}</div>
+                <div className={`text-xs mt-0.5 ${reviewType === t.value ? "text-blue-100" : "text-gray-500"}`}>
+                  {t.desc}
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 기본 정보 */}
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium mb-1">제품명 *</label>
+            <label className="block text-sm font-medium mb-1">{SUBJECT_LABELS[reviewType]} *</label>
             <input
               required
-              value={form.productName}
-              onChange={(e) => updateField("productName", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-              placeholder="예: 비타민C 세럼"
+              value={form.subjectName}
+              onChange={(e) => updateField("subjectName", e.target.value)}
+              className={inputClass}
+              placeholder={SUBJECT_PLACEHOLDERS[reviewType]}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium mb-1">브랜드명 *</label>
+            <label className="block text-sm font-medium mb-1">{BRAND_LABELS[reviewType]} *</label>
             <input
               required
-              value={form.brandName}
-              onChange={(e) => updateField("brandName", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-              placeholder="예: 닥터자르트"
+              value={form.brandOrOwner}
+              onChange={(e) => updateField("brandOrOwner", e.target.value)}
+              className={inputClass}
+              placeholder={BRAND_PLACEHOLDERS[reviewType]}
             />
           </div>
         </div>
 
+        {/* 카테고리 + 사진 */}
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium mb-1">카테고리</label>
             <select
-              value={form.category}
-              onChange={(e) => updateField("category", e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 text-sm"
+              value={typeFields.category || ""}
+              onChange={(e) => updateTypeField("category", e.target.value)}
+              className={inputClass}
             >
-              {CATEGORIES.map((c) => (
+              {CATEGORIES[reviewType].map((c) => (
                 <option key={c}>{c}</option>
               ))}
             </select>
@@ -152,19 +242,103 @@ export default function Home() {
               max={20}
               value={form.photoCount}
               onChange={(e) => updateField("photoCount", Number(e.target.value))}
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 text-sm"
+              className={inputClass}
             />
           </div>
         </div>
 
+        {/* 유형별 추가 필드 */}
+        {(reviewType === "restaurant" || reviewType === "accommodation") && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">위치/지역</label>
+              <input
+                value={typeFields.location || ""}
+                onChange={(e) => updateTypeField("location", e.target.value)}
+                className={inputClass}
+                placeholder={reviewType === "restaurant" ? "예: 강남역 3번출구" : "예: 제주 서귀포시"}
+              />
+            </div>
+            {reviewType === "restaurant" ? (
+              <div>
+                <label className="block text-sm font-medium mb-1">추천 메뉴</label>
+                <input
+                  value={typeFields.menuHighlights || ""}
+                  onChange={(e) => updateTypeField("menuHighlights", e.target.value)}
+                  className={inputClass}
+                  placeholder="예: 된장찌개, 제육볶음"
+                />
+              </div>
+            ) : (
+              <div>
+                <label className="block text-sm font-medium mb-1">객실 타입</label>
+                <input
+                  value={typeFields.roomType || ""}
+                  onChange={(e) => updateTypeField("roomType", e.target.value)}
+                  className={inputClass}
+                  placeholder="예: 디럭스 더블, 스위트"
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {reviewType === "restaurant" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">가격대</label>
+            <input
+              value={typeFields.priceRange || ""}
+              onChange={(e) => updateTypeField("priceRange", e.target.value)}
+              className={inputClass}
+              placeholder="예: 1인 15,000~20,000원"
+            />
+          </div>
+        )}
+
+        {reviewType === "accommodation" && (
+          <div>
+            <label className="block text-sm font-medium mb-1">편의시설</label>
+            <input
+              value={typeFields.facilities || ""}
+              onChange={(e) => updateTypeField("facilities", e.target.value)}
+              className={inputClass}
+              placeholder="예: 수영장, 조식뷔페, 피트니스"
+            />
+          </div>
+        )}
+
+        {reviewType === "service" && (
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">서비스 유형</label>
+              <input
+                value={typeFields.serviceType || ""}
+                onChange={(e) => updateTypeField("serviceType", e.target.value)}
+                className={inputClass}
+                placeholder="예: 간편송금, 가계부"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">요금제</label>
+              <input
+                value={typeFields.pricing || ""}
+                onChange={(e) => updateTypeField("pricing", e.target.value)}
+                className={inputClass}
+                placeholder="예: 무료 / 프리미엄 월 9,900원"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 체험 내용 */}
         <div>
           <label className="block text-sm font-medium mb-1">체험 내용 / 사용 후기</label>
           <textarea
             value={form.experience}
             onChange={(e) => updateField("experience", e.target.value)}
             rows={3}
-            className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 text-sm resize-none"
-            placeholder="직접 사용해본 경험을 자유롭게 적어주세요"
+            className={`${inputClass} resize-none`}
+            placeholder="직접 체험해본 경험을 자유롭게 적어주세요"
           />
         </div>
 
@@ -175,7 +349,7 @@ export default function Home() {
               value={form.pros}
               onChange={(e) => updateField("pros", e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 text-sm resize-none"
+              className={`${inputClass} resize-none`}
               placeholder="좋았던 점"
             />
           </div>
@@ -185,7 +359,7 @@ export default function Home() {
               value={form.cons}
               onChange={(e) => updateField("cons", e.target.value)}
               rows={2}
-              className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 text-sm resize-none"
+              className={`${inputClass} resize-none`}
               placeholder="아쉬웠던 점"
             />
           </div>
@@ -196,8 +370,8 @@ export default function Home() {
           <input
             value={form.requiredKeywords}
             onChange={(e) => updateField("requiredKeywords", e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 text-sm"
-            placeholder="쉼표로 구분 (예: 비타민C, 피부관리, 세럼추천)"
+            className={inputClass}
+            placeholder="쉼표로 구분 (예: 강남맛집, 점심추천, 한식당)"
           />
         </div>
 
@@ -206,7 +380,7 @@ export default function Home() {
           <input
             value={form.requiredPhrases}
             onChange={(e) => updateField("requiredPhrases", e.target.value)}
-            className="w-full px-3 py-2 rounded-lg border dark:border-gray-700 dark:bg-gray-900 text-sm"
+            className={inputClass}
             placeholder="예: 본 포스팅은 업체로부터 제품을 제공받아 작성하였습니다"
           />
         </div>
@@ -236,7 +410,7 @@ export default function Home() {
           disabled={loading}
           className="w-full py-3 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white font-medium transition"
         >
-          {loading ? "AI가 열심히 작성 중..." : "🚀 리뷰 글 생성하기"}
+          {loading ? "AI가 열심히 작성 중..." : "리뷰 글 생성하기"}
         </button>
       </form>
 
@@ -273,7 +447,7 @@ export default function Home() {
       {result && (
         <div className="mt-6 space-y-4">
           <div className="p-4 rounded-lg border dark:border-gray-800 dark:bg-gray-900">
-            <h2 className="font-bold mb-2">📌 제목 후보</h2>
+            <h2 className="font-bold mb-2">제목 후보</h2>
             {result.finalTitles.map((t, i) => (
               <p key={i} className="text-sm py-1">
                 {i + 1}. {t}
@@ -283,12 +457,12 @@ export default function Home() {
 
           <div className="p-4 rounded-lg border dark:border-gray-800 dark:bg-gray-900">
             <div className="flex justify-between items-center mb-2">
-              <h2 className="font-bold">📝 본문</h2>
+              <h2 className="font-bold">본문</h2>
               <button
                 onClick={copyToClipboard}
                 className="text-xs px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
               >
-                {copied ? "✓ 복사됨!" : "📋 복사"}
+                {copied ? "복사됨!" : "복사"}
               </button>
             </div>
             <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm">
@@ -297,7 +471,7 @@ export default function Home() {
           </div>
 
           <div className="p-4 rounded-lg border dark:border-gray-800 dark:bg-gray-900">
-            <h2 className="font-bold mb-2">🏷️ 해시태그</h2>
+            <h2 className="font-bold mb-2">해시태그</h2>
             <div className="flex flex-wrap gap-1">
               {result.hashtags.map((t, i) => (
                 <span key={i} className="text-xs px-2 py-1 rounded-full bg-blue-900/30 text-blue-400">
@@ -309,7 +483,7 @@ export default function Home() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="p-4 rounded-lg border dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="font-bold mb-2">📊 SEO 점수</h2>
+              <h2 className="font-bold mb-2">SEO 점수</h2>
               <div className="text-3xl font-bold text-center text-blue-400">{result.seoScore}</div>
               <div className="mt-2 space-y-1 text-xs text-gray-400">
                 <p>키워드 밀도: {result.seoAnalysis.keywordDensity}</p>
@@ -321,7 +495,7 @@ export default function Home() {
             </div>
 
             <div className="p-4 rounded-lg border dark:border-gray-800 dark:bg-gray-900">
-              <h2 className="font-bold mb-2">🤖 AI톤 제거</h2>
+              <h2 className="font-bold mb-2">AI톤 제거</h2>
               <div className="text-3xl font-bold text-center text-green-400">{result.aiToneReport.score}점</div>
               <p className="text-xs text-gray-400 mt-2">
                 {result.aiToneReport.detectCount}개 표현 수정
