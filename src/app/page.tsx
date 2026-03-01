@@ -195,8 +195,30 @@ export default function Home() {
     const tags = `<p><br></p>\n<p>${result.hashtags.map((t) => `#${t}`).join(" ")}</p>`;
     const html = `${body}\n${tags}`;
 
-    // HTML 소스코드를 텍스트로 복사 (네이버 블로그 HTML 모드에 붙여넣기)
-    await navigator.clipboard.writeText(html);
+    // 리치 텍스트로 복사 (네이버 블로그 에디터에 서식 유지하며 붙여넣기)
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([result.finalBody], { type: "text/plain" }),
+        }),
+      ]);
+    } catch {
+      // fallback: DOM 기반 복사
+      const tmp = document.createElement("div");
+      tmp.innerHTML = html;
+      tmp.style.position = "fixed";
+      tmp.style.left = "-9999px";
+      document.body.appendChild(tmp);
+      const range = document.createRange();
+      range.selectNodeContents(tmp);
+      const sel = window.getSelection();
+      sel?.removeAllRanges();
+      sel?.addRange(range);
+      document.execCommand("copy");
+      sel?.removeAllRanges();
+      document.body.removeChild(tmp);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
