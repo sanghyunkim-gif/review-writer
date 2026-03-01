@@ -1,81 +1,72 @@
-import OpenAI from "openai";
 import type { ReviewInput, WrittenContent, ReviewResult } from "../types";
 
-const SYSTEM = `당신은 체험단 블로그 글의 최종 검수 전문가입니다.
-
-## 검수 항목
-1. **SEO 최적화**: 키워드 밀도, 제목 최적화, 글 길이, 가독성, CTA
-2. **AI 말투 탐지 및 제거**:
-   - "~를 제공합니다", "~가 가능합니다", "효율적인", "최적화된" 등 번역체
-   - "이 제품은 ~합니다" 같은 딱딱한 서술체
-   - 자연스러운 블로그 말투로 교정
-3. **맞춤법/어색한 표현** 수정
-4. **필수 문구 포함 여부** 확인
-
-## 출력 (반드시 JSON)
-{
-  "finalTitles": ["수정된 제목1", "제목2", "제목3"],
-  "finalBody": "최종 수정된 본문",
-  "hashtags": ["태그1", ...],
-  "seoScore": 85,
-  "seoAnalysis": {
-    "keywordDensity": "적정/부족/과다",
-    "titleOptimization": "우수/보통/미흡",
-    "contentLength": "1800자",
-    "readability": "우수/보통/미흡",
-    "ctaPresence": "포함/미포함"
-  },
-  "aiToneReport": {
-    "detectCount": 3,
-    "fixes": ["변경1", "변경2"],
-    "score": 92
-  }
-}`;
+const AI_PATTERNS = [
+  "제공합니다", "가능합니다", "효율적인", "최적화된",
+  "탁월한", "혁신적인", "획기적인", "인상적인",
+  "~를 자랑합니다", "할 수 있습니다", "되어 있습니다",
+];
 
 export async function runReviewer(
   input: ReviewInput,
   written: WrittenContent
 ): Promise<ReviewResult> {
-  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const body = written.body || "";
+  const keywords = input.requiredKeywords.split(",").map((k) => k.trim()).filter(Boolean);
 
-  const res = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [
-      { role: "system", content: SYSTEM },
-      {
-        role: "user",
-        content: `## 원본 글
-제목 후보: ${written.titles.join(" / ")}
+  // AI 말투 탐지
+  const detected = AI_PATTERNS.filter((p) => body.includes(p));
 
-본문:
-${written.body}
+  // 키워드 밀도
+  const keywordHits = keywords.filter((k) => body.includes(k));
+  const keywordRatio = keywords.length > 0 ? keywordHits.length / keywords.length : 1;
+  const keywordDensity = keywordRatio >= 0.8 ? "적정" : keywordRatio >= 0.5 ? "부족" : "과다";
 
-해시태그: ${written.hashtags.join(", ")}
+  // 제목 키워드 포함
+  const titleHasKeyword = keywords.some((k) =>
+    written.titles.some((t) => t.includes(k))
+  );
 
-## 검수 기준
-- 유형: ${input.reviewType}
-- 필수 키워드: ${input.requiredKeywords}
-- 필수 문구: ${input.requiredPhrases}
-- 대상: ${input.subjectName} (${input.brandOrOwner})${input.mission ? `\n- 리뷰어 미션: ${input.mission}` : ""}
+  // 글 길이
+  const charCount = body.length;
 
-위 글을 검수하고, AI 말투를 제거하고, SEO를 최적화해서 최종 결과물을 만들어주세요.${input.mission ? "\n리뷰어 미션 항목이 본문에 모두 포함되어 있는지 반드시 확인하고, 빠진 항목이 있으면 자연스럽게 추가해주세요." : ""}`,
-      },
-    ],
-    temperature: 0.3,
-    max_tokens: 2000,
+  // 필수 문구 포함
+  const hasRequiredPhrases = !input.requiredPhrases || body.includes(input.requiredPhrases);
+
+  // 리뷰어 미션 체크
+  const missionItems = input.mission ? input.mission.split(",").map((m) => m.trim()).filter(Boolean) : [];
+  const missionHits = missionItems.filter((m) => {
+    const words = m.split(" ").filter((w) => w.length > 1);
+    return words.some((w) => body.includes(w));
   });
 
-  const text = res.choices[0]?.message?.content || "{}";
-  try {
-    return JSON.parse(text.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim());
-  } catch {
-    return {
-      finalTitles: written.titles,
-      finalBody: written.body,
-      hashtags: written.hashtags,
-      seoScore: 0,
-      seoAnalysis: { keywordDensity: "분석 실패", titleOptimization: "", contentLength: "", readability: "", ctaPresence: "" },
-      aiToneReport: { detectCount: 0, fixes: [], score: 0 },
-    };
-  }
+  // SEO 점수 계산
+  let score = 50;
+  if (charCount >= 1500) score += 15;
+  else if (charCount >= 1000) score += 8;
+  if (titleHasKeyword) score += 10;
+  if (keywordRatio >= 0.8) score += 10;
+  if (hasRequiredPhrases) score += 5;
+  if (detected.length === 0) score += 10;
+  else if (detected.length <= 2) score += 5;
+
+  const aiScore = detected.length === 0 ? 100 : Math.max(60, 100 - detected.length * 10);
+
+  return {
+    finalTitles: written.titles,
+    finalBody: body,
+    hashtags: written.hashtags,
+    seoScore: Math.min(score, 100),
+    seoAnalysis: {
+      keywordDensity,
+      titleOptimization: titleHasKeyword ? "우수" : "미흡",
+      contentLength: `${charCount}자`,
+      readability: charCount >= 1500 ? "우수" : charCount >= 1000 ? "보통" : "미흡",
+      ctaPresence: hasRequiredPhrases ? "포함" : "미포함",
+    },
+    aiToneReport: {
+      detectCount: detected.length,
+      fixes: detected.map((p) => `"${p}" 표현 감지됨`),
+      score: aiScore,
+    },
+  };
 }
