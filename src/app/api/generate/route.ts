@@ -6,6 +6,8 @@ import { runWriter } from "@/lib/agents/writer";
 import { runReviewer } from "@/lib/agents/reviewer";
 import type { ReviewInput } from "@/lib/types";
 
+export const maxDuration = 60;
+
 function sendEvent(controller: ReadableStreamDefaultController, stage: number, name: string, status: string, result?: string) {
   const data = JSON.stringify({ stage, name, status, result });
   controller.enqueue(new TextEncoder().encode(`data: ${data}\n\n`));
