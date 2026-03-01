@@ -13,7 +13,10 @@ function getSystemPrompt(reviewType: ReviewType): string {
    - 권장: "써보니까 진짜 좋더라고요", "~해봤는데요", "~이더라고요"
 5. **필수 문구** 반드시 포함 (협찬 표시 등)
 6. **리뷰어 미션** 항목이 있으면 각 항목을 본문에 반드시 자연스럽게 녹여서 포함
-7. **[사진]** 마커를 지정된 위치에 삽입
+7. **사진 마커**: 요청된 사진 매수만큼 반드시 정확히 삽입. 형식은 [사진: 캡션설명]
+   - 캡션에는 어떤 사진을 넣어야 하는지 구체적으로 작성 (예: [사진: 매장 외관 전경], [사진: 제육볶음 클로즈업], [사진: 객실에서 본 오션뷰])
+   - 사진 마커는 본문 흐름에 맞는 위치에 고르게 분산 배치
+   - 요청된 매수보다 적게 넣으면 안 됨
 8. 소제목은 ## 마크다운 사용
 9. **SEO 최적화**: 제목에 핵심 키워드 포함, 본문에 키워드 자연 배치, CTA 포함
 
@@ -89,7 +92,7 @@ ${input.cons}
 - 키워드: ${input.requiredKeywords}
 - 필수 문구: ${input.requiredPhrases}${input.mission ? `\n\n## 리뷰어 미션 (반드시 본문에 포함)\n${input.mission}` : ""}
 - 톤: ${toneMap[input.tone]}
-- 사진 ${input.photoCount}장 (위치: 섹션 ${plan.photoPositions.join(", ")} 뒤)
+- 사진 **정확히 ${input.photoCount}장** 삽입 필수 (각각 [사진: 캡션] 형식으로, 어떤 사진인지 구체적 설명)
 
 ## 글 구조
 ${plan.outline.join("\n")}
