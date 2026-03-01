@@ -154,10 +154,56 @@ export default function Home() {
     }
   }
 
+  function markdownToNaverHtml(md: string): string {
+    return md
+      .split("\n\n")
+      .map((block) => {
+        const trimmed = block.trim();
+        if (!trimmed) return "";
+        // 소제목
+        if (trimmed.startsWith("## ")) {
+          const text = trimmed.replace(/^## /, "");
+          return `<h3 style="font-size:18px;font-weight:bold;margin:28px 0 12px 0;color:#333;">${text}</h3>`;
+        }
+        // 사진 마커
+        if (trimmed.includes("[사진]")) {
+          return `<p style="text-align:center;margin:20px 0;color:#999;font-size:14px;">[ 사진 삽입 ]</p>`;
+        }
+        // 일반 문단 (줄바꿈 보존)
+        const html = trimmed
+          .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
+          .replace(/\n/g, "<br>");
+        return `<p style="font-size:16px;line-height:1.8;margin:10px 0;color:#333;">${html}</p>`;
+      })
+      .filter(Boolean)
+      .join("\n");
+  }
+
   async function copyToClipboard() {
     if (!result) return;
     const text = `${result.finalTitles[0]}\n\n${result.finalBody}\n\n${result.hashtags.map((t) => `#${t}`).join(" ")}`;
     await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function copyAsHtml() {
+    if (!result) return;
+    const title = `<h2 style="font-size:22px;font-weight:bold;margin-bottom:16px;color:#222;">${result.finalTitles[0]}</h2>`;
+    const body = markdownToNaverHtml(result.finalBody);
+    const tags = `<p style="margin-top:24px;font-size:14px;color:#3366cc;">${result.hashtags.map((t) => `#${t}`).join(" ")}</p>`;
+    const html = `${title}\n${body}\n${tags}`;
+
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          "text/html": new Blob([html], { type: "text/html" }),
+          "text/plain": new Blob([result.finalBody], { type: "text/plain" }),
+        }),
+      ]);
+    } catch {
+      await navigator.clipboard.writeText(html);
+    }
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
@@ -471,12 +517,20 @@ export default function Home() {
           <div className="p-4 rounded-lg border dark:border-gray-800 dark:bg-gray-900">
             <div className="flex justify-between items-center mb-2">
               <h2 className="font-bold">본문</h2>
-              <button
-                onClick={copyToClipboard}
-                className="text-xs px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                {copied ? "복사됨!" : "복사"}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={copyToClipboard}
+                  className="text-xs px-3 py-1 rounded bg-gray-600 hover:bg-gray-700 text-white"
+                >
+                  텍스트 복사
+                </button>
+                <button
+                  onClick={copyAsHtml}
+                  className="text-xs px-3 py-1 rounded bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {copied ? "복사됨!" : "네이버 블로그 붙여넣기용 복사"}
+                </button>
+              </div>
             </div>
             <div className="prose prose-sm dark:prose-invert max-w-none whitespace-pre-wrap text-sm">
               {result.finalBody}
