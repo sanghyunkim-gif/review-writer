@@ -42,42 +42,32 @@ export async function POST(request: NextRequest) {
         // Stage 1: Research
         currentStage = 1;
         sendEvent(controller, 1, stages[0].name, "running");
-        console.log("[파이프라인] 1단계 리서처 시작");
-        const research = await withTimeout(runResearcher(input), 60000, "리서처");
-        console.log("[파이프라인] 1단계 리서처 완료");
-        sendEvent(controller, 1, stages[0].name, "done", JSON.stringify(research));
+        const research = await withTimeout(runResearcher(input), 20000, "리서처");
+        sendEvent(controller, 1, stages[0].name, "done");
 
         // Stage 2: Organize
         currentStage = 2;
         sendEvent(controller, 2, stages[1].name, "running");
-        console.log("[파이프라인] 2단계 정리자 시작");
-        const organized = await withTimeout(runOrganizer(input, research), 45000, "정리자");
-        console.log("[파이프라인] 2단계 정리자 완료");
-        sendEvent(controller, 2, stages[1].name, "done", JSON.stringify(organized));
+        const organized = await withTimeout(runOrganizer(input, research), 12000, "정리자");
+        sendEvent(controller, 2, stages[1].name, "done");
 
         // Stage 3: Plan
         currentStage = 3;
         sendEvent(controller, 3, stages[2].name, "running");
-        console.log("[파이프라인] 3단계 기획자 시작");
-        const plan = await withTimeout(runPlanner(input, organized), 45000, "기획자");
-        console.log("[파이프라인] 3단계 기획자 완료");
-        sendEvent(controller, 3, stages[2].name, "done", JSON.stringify(plan));
+        const plan = await withTimeout(runPlanner(input, organized), 12000, "기획자");
+        sendEvent(controller, 3, stages[2].name, "done");
 
         // Stage 4: Write
         currentStage = 4;
         sendEvent(controller, 4, stages[3].name, "running");
-        console.log("[파이프라인] 4단계 작성자 시작");
-        const written = await withTimeout(runWriter(input, organized, plan), 60000, "작성자");
-        console.log("[파이프라인] 4단계 작성자 완료");
-        sendEvent(controller, 4, stages[3].name, "done", JSON.stringify(written));
+        const written = await withTimeout(runWriter(input, organized, plan), 18000, "작성자");
+        sendEvent(controller, 4, stages[3].name, "done");
 
         // Stage 5: Review
         currentStage = 5;
         sendEvent(controller, 5, stages[4].name, "running");
-        console.log("[파이프라인] 5단계 검수자 시작");
-        const final = await withTimeout(runReviewer(input, written), 60000, "검수자");
-        console.log("[파이프라인] 5단계 검수자 완료");
-        sendEvent(controller, 5, stages[4].name, "done", JSON.stringify(final));
+        const final = await withTimeout(runReviewer(input, written), 18000, "검수자");
+        sendEvent(controller, 5, stages[4].name, "done");
 
         // Final result
         controller.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ stage: 6, name: "완료", status: "complete", result: JSON.stringify(final) })}\n\n`));

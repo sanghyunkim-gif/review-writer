@@ -61,7 +61,7 @@ export async function runResearcher(input: ReviewInput): Promise<ResearchResult>
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) throw new Error("OPENAI_API_KEY가 설정되지 않았습니다");
 
-  const openai = new OpenAI({ apiKey, timeout: 45000 });
+  const openai = new OpenAI({ apiKey, timeout: 18000 });
   const label = SUBJECT_LABELS[input.reviewType];
 
   console.log(`[리서처] ${input.reviewType} 유형 - 기존 블로그 리뷰 검색 시작...`);

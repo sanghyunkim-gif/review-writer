@@ -20,7 +20,7 @@ export async function searchNaverBlog(query: string): Promise<string> {
         "X-Naver-Client-Id": clientId,
         "X-Naver-Client-Secret": clientSecret,
       },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
@@ -65,7 +65,7 @@ export async function searchNaverPlace(query: string): Promise<string> {
         "X-Naver-Client-Id": clientId,
         "X-Naver-Client-Secret": clientSecret,
       },
-      signal: AbortSignal.timeout(15000),
+      signal: AbortSignal.timeout(8000),
     });
 
     if (!res.ok) {
