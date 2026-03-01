@@ -35,6 +35,7 @@ export interface ReviewInput {
   brandOrOwner: string;
   typeFields: TypeFields;
   experience: string;
+  mission: string;
   pros: string;
   cons: string;
   requiredKeywords: string;

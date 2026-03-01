@@ -59,6 +59,7 @@ export default function Home() {
     subjectName: "",
     brandOrOwner: "",
     experience: "",
+    mission: "",
     pros: "",
     cons: "",
     requiredKeywords: "",
@@ -340,6 +341,18 @@ export default function Home() {
             className={`${inputClass} resize-none`}
             placeholder="직접 체험해본 경험을 자유롭게 적어주세요"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">리뷰어 미션</label>
+          <textarea
+            value={form.mission}
+            onChange={(e) => updateField("mission", e.target.value)}
+            rows={2}
+            className={`${inputClass} resize-none`}
+            placeholder="예: 대표메뉴 2가지 이상 소개, 주차 정보 언급, 할인 쿠폰 코드 안내 포함"
+          />
+          <p className="text-xs text-gray-500 mt-1">체험단에서 요구하는 필수 포함 항목을 적어주세요</p>
         </div>
 
         <div className="grid grid-cols-2 gap-3">

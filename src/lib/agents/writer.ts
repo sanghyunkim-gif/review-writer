@@ -12,7 +12,8 @@ function getSystemPrompt(reviewType: ReviewType): string {
    - 금지: "이 제품은 효율적인 성능을 제공합니다"
    - 권장: "써보니까 진짜 좋더라고요"
 5. **필수 문구** 반드시 포함 (협찬 표시 등)
-6. **[사진]** 마커를 지정된 위치에 삽입
+6. **리뷰어 미션** 항목이 있으면 각 항목을 본문에 반드시 자연스럽게 녹여서 포함
+7. **[사진]** 마커를 지정된 위치에 삽입
 7. 소제목은 ## 마크다운 사용
 
 ## 출력 (반드시 JSON)
@@ -85,7 +86,7 @@ ${input.cons}
 
 ## 필수 포함
 - 키워드: ${input.requiredKeywords}
-- 필수 문구: ${input.requiredPhrases}
+- 필수 문구: ${input.requiredPhrases}${input.mission ? `\n\n## 리뷰어 미션 (반드시 본문에 포함)\n${input.mission}` : ""}
 - 톤: ${toneMap[input.tone]}
 - 사진 ${input.photoCount}장 (위치: 섹션 ${plan.photoPositions.join(", ")} 뒤)
 

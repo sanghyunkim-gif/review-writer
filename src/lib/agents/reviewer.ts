@@ -56,9 +56,9 @@ ${written.body}
 - 유형: ${input.reviewType}
 - 필수 키워드: ${input.requiredKeywords}
 - 필수 문구: ${input.requiredPhrases}
-- 대상: ${input.subjectName} (${input.brandOrOwner})
+- 대상: ${input.subjectName} (${input.brandOrOwner})${input.mission ? `\n- 리뷰어 미션: ${input.mission}` : ""}
 
-위 글을 검수하고, AI 말투를 제거하고, SEO를 최적화해서 최종 결과물을 만들어주세요.`,
+위 글을 검수하고, AI 말투를 제거하고, SEO를 최적화해서 최종 결과물을 만들어주세요.${input.mission ? "\n리뷰어 미션 항목이 본문에 모두 포함되어 있는지 반드시 확인하고, 빠진 항목이 있으면 자연스럽게 추가해주세요." : ""}`,
       },
     ],
     temperature: 0.3,
