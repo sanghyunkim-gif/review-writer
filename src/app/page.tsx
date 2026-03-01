@@ -189,32 +189,15 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   }
 
-  function copyAsHtml() {
+  async function copyAsHtml() {
     if (!result) return;
     const title = `<h2 style="font-size:22px;font-weight:bold;margin-bottom:16px;color:#222;">${result.finalTitles[0]}</h2>`;
     const body = markdownToNaverHtml(result.finalBody);
     const tags = `<p style="margin-top:24px;font-size:14px;color:#3366cc;">${result.hashtags.map((t) => `#${t}`).join(" ")}</p>`;
     const html = `${title}\n${body}\n${tags}`;
 
-    // 임시 요소를 만들어 rich text로 복사 (브라우저 호환성 최고)
-    const tmp = document.createElement("div");
-    tmp.innerHTML = html;
-    tmp.style.position = "fixed";
-    tmp.style.left = "-9999px";
-    tmp.style.whiteSpace = "pre-wrap";
-    document.body.appendChild(tmp);
-
-    const range = document.createRange();
-    range.selectNodeContents(tmp);
-    const sel = window.getSelection();
-    sel?.removeAllRanges();
-    sel?.addRange(range);
-
-    document.execCommand("copy");
-
-    sel?.removeAllRanges();
-    document.body.removeChild(tmp);
-
+    // HTML 소스코드를 텍스트로 복사 (네이버 블로그 HTML 편집 모드에 붙여넣기용)
+    await navigator.clipboard.writeText(html);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   }
