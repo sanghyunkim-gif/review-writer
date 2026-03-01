@@ -163,19 +163,19 @@ export default function Home() {
         // 소제목
         if (trimmed.startsWith("## ")) {
           const text = trimmed.replace(/^## /, "");
-          return `<h3 style="font-size:18px;font-weight:bold;margin:28px 0 12px 0;color:#333;">${text}</h3>`;
+          return `<p><br></p>\n<p><b>${text}</b></p>`;
         }
-        // 사진 마커 ([사진: 캡션] 또는 [사진])
+        // 사진 마커
         const photoMatch = trimmed.match(/\[사진(?::?\s*(.+?))?\]/);
         if (photoMatch) {
           const caption = photoMatch[1] || "사진 삽입";
-          return `<p style="text-align:center;margin:24px 0;"><br></p>\n<p style="text-align:center;margin:4px 0;color:#888;font-size:13px;font-style:italic;">${caption}</p>`;
+          return `<p><br></p>\n<p><br></p>\n<p align="center"><i>${caption}</i></p>`;
         }
-        // 일반 문단 (줄바꿈 보존)
+        // 일반 문단
         const html = trimmed
           .replace(/\*\*(.+?)\*\*/g, "<b>$1</b>")
           .replace(/\n/g, "<br>");
-        return `<p style="font-size:16px;line-height:1.8;margin:10px 0;color:#333;">${html}</p>`;
+        return `<p>${html}</p>`;
       })
       .filter(Boolean)
       .join("\n");
@@ -191,12 +191,11 @@ export default function Home() {
 
   async function copyAsHtml() {
     if (!result) return;
-    const title = `<h2 style="font-size:22px;font-weight:bold;margin-bottom:16px;color:#222;">${result.finalTitles[0]}</h2>`;
     const body = markdownToNaverHtml(result.finalBody);
-    const tags = `<p style="margin-top:24px;font-size:14px;color:#3366cc;">${result.hashtags.map((t) => `#${t}`).join(" ")}</p>`;
-    const html = `${title}\n${body}\n${tags}`;
+    const tags = `<p><br></p>\n<p>${result.hashtags.map((t) => `#${t}`).join(" ")}</p>`;
+    const html = `${body}\n${tags}`;
 
-    // HTML 소스코드를 텍스트로 복사 (네이버 블로그 HTML 편집 모드에 붙여넣기용)
+    // HTML 소스코드를 텍스트로 복사 (네이버 블로그 HTML 모드에 붙여넣기)
     await navigator.clipboard.writeText(html);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
